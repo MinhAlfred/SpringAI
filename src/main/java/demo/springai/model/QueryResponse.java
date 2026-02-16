@@ -16,13 +16,9 @@ public class QueryResponse {
 
     private boolean success;
 
-    private String answer;
+    private ChatResult answer;
 
     private String error;
-
-    private QueryMetadata metadata;
-
-    private List<SourceDocument> sources;
 
     @Builder.Default
     private LocalDateTime timestamp = LocalDateTime.now();

@@ -13,9 +13,7 @@ public class QueryMetadata {
 
     private Integer documentsFound;
 
-    private Integer documentsUsed;
-
-    private Double averageSimilarity;
+    private Integer documentsUsed;    private Double averageSimilarity;
 
     private Long processingTimeMs;
 

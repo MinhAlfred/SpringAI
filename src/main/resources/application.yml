@@ -51,10 +51,10 @@ spring:
         host: ${QDRANT_HOST}
         port: 6334
         api-key: ${QDRANT_API_KEY}
-        collection-name: sgk_tin
+        collection-name: testt
         use-tls: true
         initialize-schema: true
-        content-field-name: page_content
+        content-field-name: text
 
 
 springdoc:

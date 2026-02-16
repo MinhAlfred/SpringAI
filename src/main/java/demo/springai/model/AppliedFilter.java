@@ -20,7 +20,6 @@ public class AppliedFilter {
     private String educationLevel;
 
     private String chapterNumber;
-
     private Boolean hasExercises;
 
     private Boolean hasActivities;
