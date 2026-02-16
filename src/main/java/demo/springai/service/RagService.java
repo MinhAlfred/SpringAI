@@ -12,9 +12,7 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,7 +33,7 @@ public class RagService {
     public ChatResult query(String question) {
         // 1. Tìm kiếm các documents liên quan
         List<Document> similarDocs = vectorStore.similaritySearch(
-                SearchRequest.builder().query(question).topK(5)
+                SearchRequest.builder().query(question).topK(20)
                         .similarityThreshold(0.5) // Ngưỡng similarity
                         .build()
         );
@@ -46,7 +44,7 @@ public class RagService {
 
         if (similarDocs.isEmpty()) {
             return ChatResult.builder().answer("Xin lỗi, tôi không tìm thấy thông tin liên quan để trả lời câu hỏi của bạn.")
-                    .sources(List.of())
+                    .sources(Map.of())
                     .promptTokens(0)
                     .completionTokens(0)
                     .totalTokens(0)
@@ -69,31 +67,52 @@ public class RagService {
                 })
                 .collect(Collectors.joining("\n\n---\n\n"));
 
-        List<SourceInfo> sources = similarDocs.stream()
-                .map(doc -> {
-                    Map<String, Object> outerMetadata = doc.getMetadata();
+        Map<String, String> sources = similarDocs.stream()
+                .map(document -> {
+                    Map<String, Object> outer = document.getMetadata();
+                    Map<String, Object> metadata = (Map<String, Object>) outer.get("metadata");
+                    if (metadata == null) return null;
 
-                    // Lấy metadata thật sự bên trong
-                    Map<String, Object> metadata =
-                            (Map<String, Object>) outerMetadata.get("metadata");
-
-                    if (metadata == null) {
-                        return null;
-                    }
-
-                    SourceInfo sourceInfo = new SourceInfo(
+                    return new SourceInfo(
                             (String) metadata.get("book_full_name"),
                             (String) metadata.get("page_range"),
-                            (String) metadata.get("document_id"),
-                            doc.getScore()
+                            document.getScore(),
+                            (String) metadata.get("document_id")
                     );
-
-                    log.info(sourceInfo.toString());
-                    return sourceInfo;
-                })
+                        }
+                )
                 .filter(Objects::nonNull)
                 .distinct()
-                .toList();
+                .sorted(Comparator.comparing(SourceInfo::getSimilarityScore).reversed())
+                .collect(Collectors.groupingBy(
+                        SourceInfo::getDocumentTitle,
+                        Collectors.mapping(
+                                SourceInfo::getPageNumber,
+                                Collectors.collectingAndThen(
+                                        Collectors.toList(),
+                                        pages -> {
+                                            // 1. Làm sạch: bỏ chữ "Trang" dư thừa
+                                            List<String> cleanPages = pages.stream()
+                                                    .map(p -> p.replaceAll("(?i)Trang\\s*", "").trim())
+                                                    .distinct()
+                                                    .toList();
+
+                                            // 2. Logic gộp đơn giản: Nếu "1" nằm trong "1-3" thì loại "1"
+                                            List<String> finalPages = new ArrayList<>();
+                                            for (String p : cleanPages) {
+                                                boolean isRedundant = cleanPages.stream().anyMatch(other -> {
+                                                    if (p.equals(other)) return false;
+                                                    // Kiểm tra xem p có phải là tập con của other không (ví dụ "1" trong "1-3")
+                                                    return isPageIncluded(p, other);
+                                                });
+                                                if (!isRedundant) finalPages.add(p);
+                                            }
+
+                                            return "Trang: " + String.join(", ", finalPages);
+                                        }
+                                )
+                        )
+                ));
 
 
         // 3. Tạo prompt với context
@@ -132,6 +151,24 @@ public class RagService {
                 completionTokens,
                 totalTokens
         );
+    }
+
+    private boolean isPageIncluded(String target, String container) {
+        if (!container.contains("-")) return false; // Thằng chứa không phải là một khoảng
+
+        try {
+            String[] cParts = container.split("-");
+            int cStart = Integer.parseInt(cParts[0]);
+            int cEnd = Integer.parseInt(cParts[1]);
+
+            if (target.contains("-")) {
+                String[] tParts = target.split("-");
+                return Integer.parseInt(tParts[0]) >= cStart && Integer.parseInt(tParts[1]) <= cEnd;
+            } else {
+                int tVal = Integer.parseInt(target);
+                return tVal >= cStart && tVal <= cEnd;
+            }
+        } catch (Exception e) { return false; }
     }
 
 }
