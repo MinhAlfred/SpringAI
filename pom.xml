@@ -66,9 +66,14 @@
             <artifactId>pdfbox</artifactId>
             <version>3.0.1</version>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-model-chat-memory-repository-jdbc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.ai</groupId>

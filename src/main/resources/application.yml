@@ -55,6 +55,11 @@ spring:
         use-tls: true
         initialize-schema: true
         content-field-name: text
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: always
 
 
 springdoc:
