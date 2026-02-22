@@ -10,7 +10,7 @@ spring:
     name: BitLearning
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/springai
+    url: jdbc:postgresql://localhost:5432/ttt
     username: postgres
     password: 12345
     driver-class-name: org.postgresql.Driver
@@ -58,8 +58,8 @@ spring:
     chat:
       memory:
         repository:
-          jdbc:
-            initialize-schema: always
+            jdbc:
+              initialize-schema: always
 
 
 springdoc:
